@@ -61,7 +61,19 @@ final class BreedViewModel: ObservableObject {
         fetchBreeds(addMore: true)
     }
     
-    func saveBreed(_ breed: CatWrapperDTO) {
-        service.saveBreed(breed)
+    func saveBreed(_ breed: CatWrapperDTO) async {
+        do {
+            guard let url = URL(string: breed.url) else { return }
+            let (data, _) = try await URLSession.shared.data(from: url)
+            UserDefaults.standard.set(data, forKey: breed.id)
+            service.saveBreed(breed)
+        } catch {
+            //
+        }
+    }
+    
+    func getUIImage(from breed: CatWrapperDTO) -> UIImage {
+        let data = UserDefaults.standard.data(forKey: breed.id) ?? Data()
+        return UIImage(data: data) ?? UIImage()
     }
 }

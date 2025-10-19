@@ -14,8 +14,7 @@ struct BreedOfflineDTO: Codable, FetchableRecord, PersistableRecord {
     var id: String
     var breedName: String
     var data: String
-    var date: Date = Date()
-    
+    var date: Date = Date()    
     
     enum Columns {
         static let id = Column(CodingKeys.id)

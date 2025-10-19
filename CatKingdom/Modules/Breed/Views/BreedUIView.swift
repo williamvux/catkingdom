@@ -58,17 +58,21 @@ struct BreedUIView: View {
                             }
                             ForEach(viewModel.breeds, id: \.id) { cat in
                                 BreedItem(cat: cat) {
-                                    viewModel.saveBreed(cat)
+                                    await viewModel.saveBreed(cat)
+                                } getUIImage: {
+                                    viewModel.getUIImage(from: cat)
                                 }
                             }
-                            HStack {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .onAppear {
-                                        viewModel.fetchMoreBreeds()
-                                    }
+                            if viewModel.breeds.count > 10 {
+                                HStack {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .onAppear {
+                                            viewModel.fetchMoreBreeds()
+                                        }
+                                }
+                                .frame(height: 50)
                             }
-                            .frame(height: 50)
                         }
                     }
                 }
@@ -91,17 +95,27 @@ struct BreedItem: View {
     }
     let cat: CatWrapperDTO
     @State private var savingState: SavingState = .canDownload
-    var onSave: () -> Void = { }
+    var onSave: () async -> Void
+    var getUIImage: () -> UIImage
+    
     var body: some View {
         HStack(alignment: .top) {
-            AsyncImage(url: URL(string: cat.url)) { image in
-                image.resizable()
-                    .scaledToFit()
-            } placeholder: {
-                Image(systemName: "photo.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .opacity(0.3)
+            Group {
+                if NetworkMonitor.shared.isConnected {
+                    AsyncImage(url: URL(string: cat.url)) { image in
+                        image.resizable()
+                            .scaledToFit()
+                    } placeholder: {
+                        Image(systemName: "photo.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .opacity(0.3)
+                    }
+                } else {
+                    Image(uiImage: getUIImage())
+                        .resizable()
+                        .scaledToFit()
+                }
             }
             .frame(width: 100)
             .roundedBorder(
@@ -130,7 +144,7 @@ struct BreedItem: View {
                             .onTapGesture {
                                 Task { @MainActor in
                                     self.savingState = .downloading
-                                    onSave()
+                                    await onSave()
                                     try? await Task.sleep(nanoseconds: UInt64(1) * 1_000_000_000)
                                     self.savingState = .downloaded
                                 }
